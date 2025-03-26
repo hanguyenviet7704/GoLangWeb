@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
+	"strings"
 	"time"
 	"vietha/src/entity"
 	"vietha/src/service"
@@ -32,7 +33,6 @@ func (controller *loginController) Login(ctx *gin.Context) {
 	var userfromout struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
-		DeviceID string `json:"device_id"`
 	}
 	ctx.ShouldBind(&userfromout)
 	var user entity.User
@@ -45,11 +45,10 @@ func (controller *loginController) Login(ctx *gin.Context) {
 	if !isUserAuthenticated {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 	}
-	accessToken := controller.jWtService.GenerateToken(user.Email, true, time.Minute*10)
-	refreshToken := controller.jWtService.GenerateToken(user.Email, false, time.Hour*1)
+	accessToken := controller.jWtService.GenerateToken(user.Email, user.Id, time.Minute*10)
+	refreshToken := controller.jWtService.GenerateToken(user.Email, user.Id, time.Hour*1)
 	controller.db.Create(&entity.UserToken{
 		UserID:       user.Id,
-		DeviceID:     userfromout.DeviceID,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    time.Now().Add(time.Minute * 10),
@@ -60,23 +59,19 @@ func (controller *loginController) Login(ctx *gin.Context) {
 	})
 }
 func (controller *loginController) RefreshToken(ctx *gin.Context) {
-	var requestData map[string]string
-	if err := ctx.ShouldBindJSON(&requestData); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
-		return
-	}
-	refreshToken, exists := requestData["refreshToken"]
-	if !exists || refreshToken == "" {
+	refreshToken := ctx.GetHeader("Authorization")
+	if refreshToken == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token is missing"})
 		return
 	}
+	refreshToken = strings.TrimPrefix(refreshToken, "Bearer ")
 	claims, err := controller.jWtService.ValidateToken(refreshToken)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token is invalid or expired"})
 		return
 	}
 	// Tạo access token mới với thông tin từ refresh token
-	newAccessToken := controller.jWtService.GenerateToken(claims.Email, true, time.Minute*10)
+	newAccessToken := controller.jWtService.GenerateToken(claims.Email, claims.UserID, time.Minute*10)
 	controller.db.Model(&entity.UserToken{}).
 		Where("refresh_token = ?", refreshToken).
 		Update("access_token", newAccessToken)

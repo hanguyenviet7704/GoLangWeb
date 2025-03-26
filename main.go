@@ -33,7 +33,6 @@ func main() {
 	})
 	server.POST("/logout", logoutController.Logout)
 	server.POST("/logoutalldevices", logoutController.LogoutAllDevices)
-	server.POST("/logoutdevice", logoutController.LogoutDevice)
 	// Nhóm route bảo vệ bởi JWT
 	authGroup := server.Group("/api")
 	authGroup.Use(middleware.AuthorizeJWT(jwtService)) // Middleware kiểm tra JWT
@@ -53,9 +52,11 @@ func main() {
 			}
 			// Trả về dữ liệu claims
 			c.JSON(http.StatusOK, gin.H{
-				"message": "Bạn đã truy cập vào!",
+				"message": "This is validate token",
 				"email":   authClaims.Email,
-				"user":    authClaims.User,
+				"userid":  authClaims.UserID,
+				"issuer":  authClaims.Issuer,
+				"expires": authClaims.ExpiresAt,
 			})
 		})
 	}
@@ -70,3 +71,5 @@ func main() {
 		panic("Không thể khởi động server: " + err.Error())
 	}
 }
+
+//VietHa

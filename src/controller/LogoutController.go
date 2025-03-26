@@ -4,13 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
+	"strings"
 	"vietha/src/entity"
 )
 
 type LogoutController interface {
 	Logout(ctx *gin.Context)
 	LogoutAllDevices(ctx *gin.Context)
-	LogoutDevice(ctx *gin.Context)
 }
 type logoutController struct {
 	db *gorm.DB
@@ -23,46 +23,35 @@ func NewLogout(db *gorm.DB) LogoutController {
 }
 func (controller *logoutController) Logout(ctx *gin.Context) {
 	token := ctx.GetHeader("Authorization")
-	result := controller.db.Where("access_token = ?", token).Delete(&entity.UserToken{})
 	if token == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Token is empty"})
 		return
 	}
+	token = strings.TrimPrefix(token, "Bearer ")
+	result := controller.db.Where("access_token = ?", token).Delete(&entity.UserToken{})
 	if result.Error != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log out"})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "success log out in now device"})
+	if result.RowsAffected == 0 {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully logged out from this device"})
 }
+
 func (controller *logoutController) LogoutAllDevices(ctx *gin.Context) {
-	userID := make(map[string]int)
-	if err := ctx.ShouldBindJSON(&userID); err != nil {
+	var request struct {
+		UserID int `json:"user_id"`
+	}
+	if err := ctx.ShouldBindJSON(&request); err != nil || request.UserID == 0 {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-	// Xóa tất cả token của user
-	result := controller.db.Where("user_id = ?", userID["user_id"]).Delete(&entity.UserToken{})
+	result := controller.db.Where("user_id = ?", request.UserID).Delete(&entity.UserToken{})
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log out from all devices"})
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "Logged out from all devices"})
-}
-func (controller *logoutController) LogoutDevice(ctx *gin.Context) {
-	var req struct {
-		UserID   int    `form:"user_id"`
-		DeviceID string `json:"device_id"`
-	}
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	// Xóa token của thiết bị cụ thể
-	result := controller.db.Where("user_id = ? AND device_id = ?", req.UserID, req.DeviceID).Delete(&entity.UserToken{})
-	if result.Error != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log out from device"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "Logged out from device " + req.DeviceID})
 }

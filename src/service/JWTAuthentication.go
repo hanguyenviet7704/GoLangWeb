@@ -8,16 +8,13 @@ import (
 	"time"
 )
 
-// AuthCustomClaims - struct lưu thông tin user trong token
 type AuthCustomClaims struct {
-	Email string `json:"email"`
-	User  bool   `json:"user"`
+	Email  string `json:"email"`
+	UserID int    `json:"userId"`
 	jwt.StandardClaims
 }
-
-// JWTService - Interface cho JWT
 type JWTService interface {
-	GenerateToken(email string, isUser bool, expiration time.Duration) string
+	GenerateToken(email string, UserID int, expiration time.Duration) string
 	ValidateToken(token string) (*AuthCustomClaims, error)
 }
 type jwtServices struct {
@@ -32,20 +29,16 @@ func GetSecretKey() string {
 	}
 	return secret
 }
-
-// Khởi tạo service JWT
 func JWTAuthService() JWTService {
 	return &jwtServices{
 		secretKey: GetSecretKey(),
 		issuer:    "VietHa",
 	}
 }
-
-// Tạo JWT token
-func (service *jwtServices) GenerateToken(email string, isUser bool, expiration time.Duration) string {
+func (service *jwtServices) GenerateToken(email string, UserID int, expiration time.Duration) string {
 	claims := &AuthCustomClaims{
-		Email: email,
-		User:  isUser,
+		Email:  email,
+		UserID: UserID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(expiration).Unix(),
 			Issuer:    service.issuer,
@@ -59,8 +52,6 @@ func (service *jwtServices) GenerateToken(email string, isUser bool, expiration 
 	}
 	return t
 }
-
-// Kiểm tra token
 func (service *jwtServices) ValidateToken(encodedToken string) (*AuthCustomClaims, error) {
 	token, err := jwt.ParseWithClaims(encodedToken, &AuthCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -68,17 +59,14 @@ func (service *jwtServices) ValidateToken(encodedToken string) (*AuthCustomClaim
 		}
 		return []byte(service.secretKey), nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
-
 	if claims, ok := token.Claims.(*AuthCustomClaims); ok && token.Valid {
 		if claims.ExpiresAt < time.Now().Unix() {
 			return nil, errors.New("Token is expired")
 		}
 		return claims, nil
 	}
-
 	return nil, errors.New("Invalid token")
 }

@@ -36,7 +36,6 @@ func SendResetPasswordEmail(toEmail string, token string) error {
 
 	// Tạo đường link đặt lại mật khẩu
 	resetLink := fmt.Sprintf("http://localhost:8080/reset-password?token=%s", token)
-
 	// Tạo nội dung email
 	mailer := gomail.NewMessage()
 	mailer.SetHeader("From", fromEmail) // Email gửi
@@ -47,10 +46,6 @@ func SendResetPasswordEmail(toEmail string, token string) error {
 		<p>Nhấn vào đường link dưới đây để đặt lại mật khẩu:</p>
 		<a href="%s">%s</a>
 	`, resetLink, resetLink))
-
-	// Cấu hình SMTP
 	dialer := gomail.NewDialer(smtpHost, port, smtpUser, smtpPassword)
-
-	// Gửi email
 	return dialer.DialAndSend(mailer)
 }

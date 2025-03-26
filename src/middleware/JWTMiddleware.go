@@ -1,11 +1,10 @@
 package middleware
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
 	"vietha/src/service"
-
-	"github.com/gin-gonic/gin"
 )
 
 // AuthorizeJWT - Middleware kiểm tra JWT
