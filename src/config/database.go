@@ -18,6 +18,6 @@ func ConnectDatabase() *gorm.DB {
 		log.Fatal("Không thể kết nối database:", err)
 	}
 	fmt.Println("Kết nối MySQL thành công!")
-	DB.AutoMigrate(&entity.User{}, &entity.UserToken{}, &entity.Role{})
+	DB.AutoMigrate(&entity.User{}, &entity.Tokens{}, &entity.Roles{}, &entity.Permissions{})
 	return DB
 }

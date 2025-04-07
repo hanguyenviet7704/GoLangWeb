@@ -10,7 +10,6 @@ import (
 	"vietha/src/service"
 )
 
-// login contorller interface
 type LoginController interface {
 	Login(ctx *gin.Context) // trả về JWT nếu đăng nhập thành công hoạc một thông báo lỗi nếu thất bại
 	RefreshToken(ctx *gin.Context)
@@ -30,13 +29,13 @@ func LoginHandler(db *gorm.DB, loginService service.UserService,
 	}
 }
 func (controller *loginController) Login(ctx *gin.Context) {
-	var userfromout struct {
+	var userRequest struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	ctx.ShouldBind(&userfromout)
+	ctx.ShouldBind(&userRequest)
 	var user entity.User
-	if err := controller.db.Where("email = ?", userfromout.Email).First(&user).Error; err != nil {
+	if err := controller.db.Where("email = ?", userRequest.Email).First(&user).Error; err != nil {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
@@ -45,15 +44,24 @@ func (controller *loginController) Login(ctx *gin.Context) {
 	if !isUserAuthenticated {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 	}
-	accessToken := controller.jWtService.GenerateToken(user.Email, user.Id, time.Minute*10)
-	refreshToken := controller.jWtService.GenerateToken(user.Email, user.Id, time.Hour*1)
-	controller.db.Create(&entity.UserToken{
-		UserID:       user.Id,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresAt:    time.Now().Add(time.Minute * 10),
+	accessToken := controller.jWtService.GenerateAccessToken(&user)
+	refreshToken := controller.jWtService.GenerateRefreshToken(&user)
+	controller.db.Create(&entity.Tokens{
+		UserID:                   user.Id,
+		AccessToken:              accessToken,
+		RefreshToken:             refreshToken,
+		Access_token_expires_at:  time.Now().Add(time.Minute * 10),
+		Refresh_token_expires_at: time.Now().Add(time.Hour * 1),
+		CreatedAt:                time.Now(),
+		UpdatedAt:                time.Now(),
 	})
 	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Successfully logged in",
+		"user": gin.H{
+			"id":    user.Id,
+			"email": user.Email,
+			"name":  user.Name,
+		},
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 	})
@@ -70,9 +78,16 @@ func (controller *loginController) RefreshToken(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token is invalid or expired"})
 		return
 	}
+	err = controller.db.Where("refresh_token = ?", refreshToken).First(&refreshToken).Error
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token is invalid in Database "})
+		return
+	}
+	var user entity.User
+	controller.db.Where("claims.user_id = ?", claims.UserID).First(&user)
 	// Tạo access token mới với thông tin từ refresh token
-	newAccessToken := controller.jWtService.GenerateToken(claims.Email, claims.UserID, time.Minute*10)
-	controller.db.Model(&entity.UserToken{}).
+	newAccessToken := controller.jWtService.GenerateAccessToken(&user)
+	controller.db.Model(&entity.Tokens{}).
 		Where("refresh_token = ?", refreshToken).
 		Update("access_token", newAccessToken)
 	ctx.JSON(http.StatusOK, gin.H{

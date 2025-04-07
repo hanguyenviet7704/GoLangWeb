@@ -28,7 +28,7 @@ func (controller *logoutController) Logout(ctx *gin.Context) {
 		return
 	}
 	token = strings.TrimPrefix(token, "Bearer ")
-	result := controller.db.Where("access_token = ?", token).Delete(&entity.UserToken{})
+	result := controller.db.Where("access_token = ?", token).Delete(&entity.Tokens{})
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log out"})
 		return
@@ -48,7 +48,7 @@ func (controller *logoutController) LogoutAllDevices(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-	result := controller.db.Where("user_id = ?", request.UserID).Delete(&entity.UserToken{})
+	result := controller.db.Where("user_id = ?", request.UserID).Delete(&entity.Tokens{})
 	if result.Error != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log out from all devices"})
 		return

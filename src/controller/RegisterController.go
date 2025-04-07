@@ -2,10 +2,9 @@ package controller
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"vietha/src/service"
-
-	"github.com/gin-gonic/gin"
 )
 
 type RegisterController interface {

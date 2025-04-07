@@ -2,11 +2,15 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
 	"net/http"
 	"os"
+	_ "vietha/docs"
 	"vietha/src/config"
 	"vietha/src/controller"
+	"vietha/src/entity"
 	"vietha/src/handlers"
 	"vietha/src/middleware"
 	"vietha/src/repository"
@@ -16,23 +20,40 @@ import (
 var (
 	db                 *gorm.DB                      = config.ConnectDatabase()
 	userRepository     repository.UserRepository     = repository.NewUserRepository(db)
-	userService        service.UserService           = service.NewUserService(userRepository)
+	userService        service.UserService           = service.NewUserService(userRepository, db)
 	jwtService         service.JWTService            = service.JWTAuthService()
 	loginController    controller.LoginController    = controller.LoginHandler(db, userService, jwtService)
 	logoutController   controller.LogoutController   = controller.NewLogout(db)
 	registerController controller.RegisterController = controller.NewRegisterController(userService)
 	authHandlers                                     = handlers.NewAuth(db)
+	userController                                   = controller.NewUserController(userService)
 )
 
+// @title Nông sản API
+// @version 1.0
+// @description API cho hệ thống bán hàng nông sản trực tuyến
+// @host localhost:2004
+// @BasePath /api
 func main() {
+	// Khởi tạo các controller và dịch vụ
 	server := gin.New()
-	server.POST("/login", loginController.Login)
-	server.POST("/refresh", loginController.RefreshToken)
-	server.POST("/register", func(ctx *gin.Context) {
-		registerController.Register(ctx) // Gọi đúng RegisterController
+	// Users API
+	server.GET("api/users", userController.GetAllUsers)                  // Lấy tất cả người dùng
+	server.GET("api/user", userController.GetUserById)                   // Lấy thông tin người dùng theo ID
+	server.POST("api/users", userController.CreateOrUpdateUser)          // Tạo hoặc cập nhật người dùng
+	server.DELETE("/api/users", userController.DeleteUser)               // Xóa người dùng
+	server.GET("/api/users/:id/roles", userController.GetRolesFromUser)  // Lấy quyền của người dùng
+	server.PUT("/api/users/:id/roles", userController.AssignRolesToUser) // Gán quyền cho người dùng
+	// Authentication API
+	server.POST("api/auth/login", loginController.Login)          // Đăng nhập
+	server.POST("api/auth/refresh", loginController.RefreshToken) // Làm mới token
+	server.POST("api/auth/register", func(ctx *gin.Context) {
+		registerController.Register(ctx) // Đăng ký người dùng
 	})
-	server.POST("/logout", logoutController.Logout)
-	server.POST("/logoutalldevices", logoutController.LogoutAllDevices)
+	server.POST("api/auth/logout", logoutController.Logout)                     // Đăng xuất
+	server.POST("api/auth/logoutalldevices", logoutController.LogoutAllDevices) // Đăng xuất khỏi tất cả thiết bị
+	// Swagger UI
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Nhóm route bảo vệ bởi JWT
 	authGroup := server.Group("/api")
 	authGroup.Use(middleware.AuthorizeJWT(jwtService)) // Middleware kiểm tra JWT
@@ -50,17 +71,21 @@ func main() {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 				return
 			}
+			var user entity.User
+			db.Preload("Roles").First(&user, authClaims.UserID)
 			// Trả về dữ liệu claims
 			c.JSON(http.StatusOK, gin.H{
 				"message": "This is validate token",
 				"email":   authClaims.Email,
+				"name":    authClaims.Name,
 				"userid":  authClaims.UserID,
 				"issuer":  authClaims.Issuer,
 				"expires": authClaims.ExpiresAt,
+				"roles":   user.Roles,
 			})
 		})
 	}
-	server.POST("/forgot-password", authHandlers.ForgotPassword)
+
 	// Khởi động server
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -72,4 +97,4 @@ func main() {
 	}
 }
 
-//VietHa
+//http://localhost:2004/api/users/:id/roles

@@ -1,0 +1,113 @@
+basePath: /api
+definitions:
+  entity.Permissions:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      resource:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  entity.Roles:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/entity.Permissions'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  entity.Tokens:
+    properties:
+      access_token_expires_at:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      refresh_token:
+        type: string
+      refresh_token_expires_at:
+        type: string
+      token:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  entity.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      password:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/entity.Permissions'
+        type: array
+      roles:
+        items:
+          $ref: '#/definitions/entity.Roles'
+        type: array
+      tokens:
+        items:
+          $ref: '#/definitions/entity.Tokens'
+        type: array
+      updated_at:
+        type: string
+    type: object
+host: localhost:2004
+info:
+  contact: {}
+  description: API cho hệ thống bán hàng nông sản trực tuyến
+  title: Nông sản API
+  version: "1.0"
+paths:
+  /api/users:
+    get:
+      consumes:
+      - application/json
+      description: Trả về danh sách tất cả người dùng trong hệ thống
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/entity.User'
+              type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Lấy danh sách người dùng
+      tags:
+      - users
+swagger: "2.0"
