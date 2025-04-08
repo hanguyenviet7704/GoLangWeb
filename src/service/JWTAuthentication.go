@@ -4,16 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"gorm.io/gorm"
 	"os"
 	"time"
 	"vietha/src/entity"
 )
 
 type AuthCustomClaims struct {
-	Name   string   `json:"name"`
-	Email  string   `json:"email"`
-	UserID int      `json:"userId"`
-	Roles  []string `json:"role"`
+	Name        string               `json:"name"`
+	Email       string               `json:"email"`
+	UserID      int                  `json:"userId"`
+	Roles       []entity.Roles       `json:"role"`
+	Permissions []entity.Permissions `json:"permissions"`
 	jwt.StandardClaims
 }
 type JWTService interface {
@@ -24,6 +26,7 @@ type JWTService interface {
 type jwtServices struct {
 	secretKey string
 	issuer    string
+	db        *gorm.DB
 }
 
 func GetSecretKey() string {
@@ -33,22 +36,23 @@ func GetSecretKey() string {
 	}
 	return secret
 }
-func JWTAuthService() JWTService {
+func JWTAuthService(db *gorm.DB) JWTService {
 	return &jwtServices{
+		db:        db,
 		secretKey: GetSecretKey(),
 		issuer:    "VietHa",
 	}
 }
 func (service *jwtServices) GenerateAccessToken(user *entity.User) string {
-	roles := make([]string, len(user.Roles))
-	for i, role := range user.Roles {
-		roles[i] = role.Name
-	}
+	var user2 entity.User
+	service.db.Preload("Roles").First(&user2, user.Id)
+	service.db.Preload("Permissions").First(&user2, user.Id)
 	claims := &AuthCustomClaims{
-		Name:   user.Name,
-		Email:  user.Email,
-		UserID: user.Id,
-		Roles:  roles,
+		Name:        user.Name,
+		Email:       user.Email,
+		UserID:      user.Id,
+		Roles:       user2.Roles,
+		Permissions: user2.Permissions,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(time.Minute * 15).Unix(),
 			Issuer:    service.issuer,

@@ -10,7 +10,6 @@ import (
 	_ "vietha/docs"
 	"vietha/src/config"
 	"vietha/src/controller"
-	"vietha/src/entity"
 	"vietha/src/handlers"
 	"vietha/src/middleware"
 	"vietha/src/repository"
@@ -21,7 +20,7 @@ var (
 	db                 *gorm.DB                      = config.ConnectDatabase()
 	userRepository     repository.UserRepository     = repository.NewUserRepository(db)
 	userService        service.UserService           = service.NewUserService(userRepository, db)
-	jwtService         service.JWTService            = service.JWTAuthService()
+	jwtService         service.JWTService            = service.JWTAuthService(db)
 	loginController    controller.LoginController    = controller.LoginHandler(db, userService, jwtService)
 	logoutController   controller.LogoutController   = controller.NewLogout(db)
 	registerController controller.RegisterController = controller.NewRegisterController(userService)
@@ -71,21 +70,20 @@ func main() {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 				return
 			}
-			var user entity.User
-			db.Preload("Roles").First(&user, authClaims.UserID)
 			// Trả về dữ liệu claims
 			c.JSON(http.StatusOK, gin.H{
-				"message": "This is validate token",
-				"email":   authClaims.Email,
-				"name":    authClaims.Name,
-				"userid":  authClaims.UserID,
-				"issuer":  authClaims.Issuer,
-				"expires": authClaims.ExpiresAt,
-				"roles":   user.Roles,
+				"message":     "This is validate token",
+				"email":       authClaims.Email,
+				"name":        authClaims.Name,
+				"userid":      authClaims.UserID,
+				"issuer":      authClaims.Issuer,
+				"expires":     authClaims.ExpiresAt,
+				"roles":       authClaims.Roles,
+				"permissions": authClaims.Permissions,
 			})
 		})
 	}
-
+	//
 	// Khởi động server
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -97,4 +95,4 @@ func main() {
 	}
 }
 
-//http://localhost:2004/api/users/:id/roles
+//http://localhost:2004/api/protected
