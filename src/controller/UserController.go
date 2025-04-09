@@ -48,6 +48,20 @@ func (controller *userController) GetAllUsers(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"users": users})
 }
+
+// GetUserById godoc
+// @Summary Lấy thông tin người dùng theo ID
+// @Description Trả về thông tin chi tiết của người dùng dựa trên ID
+// @Tags users
+// @Accept  json
+// @Produce  json
+// @Param id query int true "User ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /api/user [get]
+
 func (controller *userController) GetUserById(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {

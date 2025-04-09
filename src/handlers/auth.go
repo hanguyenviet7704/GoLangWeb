@@ -10,18 +10,28 @@ import (
 	"sync"
 	"time"
 	"vietha/src/entity"
+	"vietha/src/middleware"
+	"vietha/src/service"
 	"vietha/src/utils"
 )
 
 type Auths interface {
 	ForgotPassword(c *gin.Context)
+	ProfileHandler(c *gin.Context)
+	RegisterAuthRoutes(router *gin.Engine)
 }
 type Auth struct {
-	db *gorm.DB
+	db           *gorm.DB
+	authorizeJWT middleware.JWTMiddleware
+	service      service.JWTService
 }
 
-func NewAuth(db *gorm.DB) *Auth {
-	return &Auth{db: db}
+func NewAuth(db *gorm.DB, authorizeJWT middleware.JWTMiddleware, jwtService service.JWTService) *Auth {
+	return &Auth{
+		db:           db,
+		service:      jwtService,
+		authorizeJWT: authorizeJWT,
+	}
 }
 
 var tokenStore = sync.Map{}
@@ -61,3 +71,37 @@ func (auth *Auth) ForgotPassword(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Email has been sent"})
 }
+
+type jwtController struct {
+	db           *gorm.DB
+	authorizeJWT middleware.JWTMiddleware
+	service      service.JWTService
+}
+
+// Constructor
+
+// Method trả thông tin người dùng từ token
+func (ctrl *jwtController) ProfileHandler(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized access"})
+		return
+	}
+	authClaims, ok := claims.(*service.AuthCustomClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message":     "This is validate token",
+		"email":       authClaims.Email,
+		"name":        authClaims.Name,
+		"userId":      authClaims.UserID,
+		"issuer":      authClaims.Issuer,
+		"expires":     authClaims.ExpiresAt,
+		"roles":       authClaims.Roles,
+		"permissions": authClaims.Permissions,
+	})
+}
+
+// Đăng ký route có bảo vệ bằng JWT

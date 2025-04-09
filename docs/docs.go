@@ -18,7 +18,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/users": {
+        "/users": {
             "get": {
                 "description": "Trả về danh sách tất cả người dùng trong hệ thống\nKết quả trả về bao gồm thông tin cơ bản của người dùng và trạng thái hoạt động",
                 "consumes": [
@@ -47,25 +47,83 @@ const docTemplate = `{
                         },
                         "examples": {
                             "application/json": {
-                                "users": [
-                                    {
-                                        "id": 1,
-                                        "name": "Nguyễn Văn A",
-                                        "email": "a@nongsan.com",
-                                        "is_active": true,
-                                        "created_at": "2023-01-01T00:00:00Z",
-                                        "updated_at": "2023-01-01T00:00:00Z"
-                                    },
-                                    {
-                                        "id": 2,
-                                        "name": "Trần Thị B",
-                                        "email": "b@nongsan.com",
-                                        "is_active": false,
-                                        "created_at": "2023-01-02T00:00:00Z",
-                                        "updated_at": "2023-01-02T00:00:00Z"
-                                    }
-                                ]
-                            }
+									"users": [
+										{
+											"id": 3,
+											"name": "VietHa",
+											"email": "hanguyenthua07@gmail.com",
+											"password": "123456",
+											"is_active": true,
+											"created_at": "2025-04-04T11:01:13.928+07:00",
+											"updated_at": "2025-04-07T16:09:40.278+07:00",
+											"Roles": [
+												{
+													"id": 1,
+													"name": "ROLE_ADMIN",
+													"created_at": "2025-04-03T23:03:29+07:00",
+													"updated_at": "2025-04-03T23:03:31+07:00",
+													"permissions": null
+												},
+												{
+													"id": 2,
+													"name": "ROLE_USER",
+													"created_at": "2025-04-03T23:03:33+07:00",
+													"updated_at": "2025-04-03T23:03:34+07:00",
+													"permissions": null
+												},
+												{
+													"id": 3,
+													"name": "ROLE_EMPLOYEE",
+													"created_at": "2025-04-03T23:03:35+07:00",
+													"updated_at": "2025-04-03T23:03:36+07:00",
+													"permissions": null
+												}
+											],
+											"Tokens": null,
+											"Permissions": null
+										},
+										{
+											"id": 4,
+											"name": "Nguyen Van A",
+											"email": "nguyenvana@example.com",
+											"password": "123456",
+											"is_active": true,
+											"created_at": "2025-04-06T22:46:17.735+07:00",
+											"updated_at": "2025-04-06T22:46:17.735+07:00",
+											"Roles": [
+												{
+													"id": 1,
+													"name": "ROLE_ADMIN",
+													"created_at": "2025-04-03T23:03:29+07:00",
+													"updated_at": "2025-04-03T23:03:31+07:00",
+													"permissions": null
+												}
+											],
+											"Tokens": null,
+											"Permissions": null
+										},
+										{
+											"id": 6,
+											"name": "Nguyen Van B",
+											"email": "nguyenvana@example.com",
+											"password": "123456",
+											"is_active": true,
+											"created_at": "2025-04-06T22:51:51.781+07:00",
+											"updated_at": "2025-04-06T22:51:51.781+07:00",
+											"Roles": [
+												{
+													"id": 1,
+													"name": "ROLE_ADMIN",
+													"created_at": "2025-04-03T23:03:29+07:00",
+													"updated_at": "2025-04-03T23:03:31+07:00",
+													"permissions": null
+												}
+											],
+											"Tokens": null,
+											"Permissions": null
+										}
+									]
+								}
                         }
                     },
                     "500": {
@@ -88,6 +146,27 @@ const docTemplate = `{
             }
         }
     },
+		"/user": {
+		  "get": {
+			"summary": "Lấy thông tin người dùng theo ID",
+			"tags": ["users"],
+			"parameters": [{
+			  "name": "id",
+			  "in": "path",
+			  "required": true,
+			  "type": "integer"
+			}],
+			"responses": {
+			  "200": {
+				"description": "Thông tin người dùng",
+				"schema": { "$ref": "#/definitions/entity.User" }
+			  },
+			  "404": {
+				"description": "Không tìm thấy người dùng"
+			  }
+			}
+		  }
+		},
     "definitions": {
         "entity.Permissions": {
             "type": "object",

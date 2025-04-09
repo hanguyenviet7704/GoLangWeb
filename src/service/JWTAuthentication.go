@@ -54,7 +54,7 @@ func (service *jwtServices) GenerateAccessToken(user *entity.User) string {
 		Roles:       user2.Roles,
 		Permissions: user2.Permissions,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Minute * 15).Unix(),
+			ExpiresAt: time.Now().Add(time.Minute * 60).Unix(),
 			Issuer:    service.issuer,
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.Name,

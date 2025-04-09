@@ -7,8 +7,23 @@ import (
 	"vietha/src/service"
 )
 
+type JWTMiddleware interface {
+	AuthorizeJWT() gin.HandlerFunc
+	RoleMiddleware(allowedRoles ...string) gin.HandlerFunc
+	PermissionMiddleware(allowedPermissions ...string) gin.HandlerFunc
+}
+type middleware struct {
+	jwtService service.JWTService
+}
+
+func MiddlewareHandler(jwtService service.JWTService) JWTMiddleware {
+	return &middleware{
+		jwtService: jwtService,
+	}
+}
+
 // AuthorizeJWT - Middleware kiểm tra JWT
-func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
+func (m *middleware) AuthorizeJWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -21,59 +36,77 @@ func AuthorizeJWT(jwtService service.JWTService) gin.HandlerFunc {
 			return
 		}
 		tokenString := authHeader[len(BEARER_SCHEMA):]
-		claims, err := jwtService.ValidateToken(tokenString)
+		claims, err := m.jwtService.ValidateToken(tokenString)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
-		// Lưu claims vào context với key "claims"
 		c.Set("claims", claims)
 		c.Next()
 	}
 }
-func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
+
+// RoleMiddleware - Middleware kiểm tra vai trò
+func (m *middleware) RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, ok := c.Get("claims")
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing claims"})
 			return
 		}
+
 		authClaims, ok := claims.(*service.AuthCustomClaims)
-		var roles []string
-		for i, role := range authClaims.Roles {
-			roles[i] = role.Name
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid claims"})
+			return
 		}
-		for _, roleOut := range allowedRoles {
-			for _, roleIn := range roles {
-				if roleOut == roleIn {
+
+		roles := make([]string, 0, len(authClaims.Roles))
+		for _, role := range authClaims.Roles {
+			roles = append(roles, role.Name)
+		}
+
+		for _, allowed := range allowedRoles {
+			for _, actual := range roles {
+				if allowed == actual {
 					c.Next()
 					return
 				}
 			}
 		}
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Don't have role to perform this action"})
+
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You don't have required role"})
 	}
 }
-func PermissionMiddleware(allowedPermissions ...string) gin.HandlerFunc {
+
+// PermissionMiddleware - Middleware kiểm tra quyền
+func (m *middleware) PermissionMiddleware(allowedPermissions ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, ok := c.Get("claims")
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing claims"})
 			return
 		}
+
 		authClaims, ok := claims.(*service.AuthCustomClaims)
-		var permissions []string
-		for _, permission := range authClaims.Permissions {
-			permissions = append(permissions, permission.Name)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid claims"})
+			return
 		}
-		for _, permission := range allowedPermissions {
-			for _, permissionIn := range permissions {
-				if permissionIn == permission {
+
+		permissions := make([]string, 0, len(authClaims.Permissions))
+		for _, perm := range authClaims.Permissions {
+			permissions = append(permissions, perm.Name)
+		}
+
+		for _, allowed := range allowedPermissions {
+			for _, actual := range permissions {
+				if allowed == actual {
 					c.Next()
 					return
 				}
 			}
 		}
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Don't have permission to perform this action"})
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You don't have required permission"})
 	}
 }
