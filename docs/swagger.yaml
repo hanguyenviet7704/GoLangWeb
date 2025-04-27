@@ -1,0 +1,482 @@
+basePath: /api
+definitions:
+  auth.LogoutAllDevicesRequest:
+    properties:
+      user_id:
+        type: integer
+    type: object
+  po.Permissions:
+    properties:
+      action:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      resource:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  po.Roles:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/po.Permissions'
+        type: array
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: hanguyenviet772004@gmail.com
+    name: Việt Hà
+  description: API tài liệu cho hệ thống xác thực
+  title: GOLANDWEB API
+  version: "1.0"
+paths:
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Đăng nhập vào hệ thống với email và mật khẩu để nhận Access Token
+        và Refresh Token.
+      parameters:
+      - description: Email người dùng
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: Mật khẩu người dùng
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: Lỗi hệ thống
+          schema:
+            additionalProperties: true
+            type: object
+        "40004":
+          description: Lỗi tạo token
+          schema:
+            additionalProperties: true
+            type: object
+        "50001":
+          description: Không tìm thấy người dùng
+          schema:
+            additionalProperties: true
+            type: object
+        "50003":
+          description: Sai mật khẩu
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Auth
+  /api/v1/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Xóa access token hiện tại (thiết bị đang dùng)
+      parameters:
+      - description: Access Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Đăng xuất thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: Lỗi khi xóa token
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Auth
+  /api/v1/auth/logout-all:
+    post:
+      consumes:
+      - application/json
+      description: Xóa tất cả access token của người dùng dựa vào user_id
+      parameters:
+      - description: ID người dùng cần đăng xuất toàn bộ
+        in: body
+        name: user_id
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LogoutAllDevicesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Đăng xuất thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "20003":
+          description: User ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: Lỗi khi xóa tất cả token
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Auth
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Sử dụng refreshToken để lấy accessToken mới.
+      parameters:
+      - description: Refresh Token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token mới
+          schema:
+            additionalProperties: true
+            type: object
+        "30002":
+          description: Token không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40002":
+          description: Lỗi khi truy vấn Refresh Token
+          schema:
+            additionalProperties: true
+            type: object
+        "40003":
+          description: Không thể tạo Access Token
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Auth
+  /api/v1/roles:
+    get:
+      description: Trả về danh sách tất cả các Role trong hệ thống.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lấy danh sách role thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: Lỗi khi lấy danh sách roles
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      description: Thêm một Role mới vào hệ thống.
+      parameters:
+      - description: Thông tin Role cần tạo
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/po.Roles'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Tạo role thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40003":
+          description: Lỗi bind JSON
+          schema:
+            additionalProperties: true
+            type: object
+        "40004":
+          description: Lỗi khi tạo role
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+  /api/v1/roles/{id}:
+    delete:
+      description: Xóa một Role khỏi hệ thống theo ID.
+      parameters:
+      - description: ID Role cần xóa
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Xóa role thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40005":
+          description: Lỗi khi xóa role
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+    get:
+      description: Lấy thông tin chi tiết của Role theo ID.
+      parameters:
+      - description: ID Role
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lấy role theo ID thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40002":
+          description: Lỗi khi lấy role theo ID
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      description: Cập nhật thông tin Role theo ID.
+      parameters:
+      - description: ID Role cần cập nhật
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Thông tin Role cập nhật
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/po.Roles'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cập nhật role thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40003":
+          description: Lỗi bind JSON
+          schema:
+            additionalProperties: true
+            type: object
+        "40004":
+          description: Lỗi khi cập nhật role
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+  /api/v1/roles/{id}/permissions:
+    get:
+      description: Lấy tất cả quyền được gán cho một Role cụ thể.
+      parameters:
+      - description: ID Role
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lấy danh sách permissions thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40006":
+          description: Lỗi khi lấy permissions theo role
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      description: Gán một danh sách các quyền cho Role theo ID.
+      parameters:
+      - description: ID Role
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Danh sách ID của quyền được gán
+        in: body
+        name: permissionIds
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Gán permission thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40003":
+          description: Lỗi bind JSON
+          schema:
+            additionalProperties: true
+            type: object
+        "40007":
+          description: Lỗi khi phân quyền role
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Roles
+  /api/v1/users:
+    get:
+      description: Trả về danh sách tất cả người dùng trong hệ thống.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lấy danh sách người dùng thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: Lỗi khi lấy danh sách người dùng
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Users
+  /api/v1/users/{id}:
+    delete:
+      description: Xóa một người dùng khỏi hệ thống theo ID.
+      parameters:
+      - description: ID người dùng cần xóa
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Xóa người dùng thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40005":
+          description: Lỗi khi xóa người dùng
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Users
+    get:
+      description: Lấy thông tin chi tiết của người dùng theo ID.
+      parameters:
+      - description: ID người dùng
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lấy người dùng theo ID thành công
+          schema:
+            additionalProperties: true
+            type: object
+        "40001":
+          description: ID không hợp lệ
+          schema:
+            additionalProperties: true
+            type: object
+        "40002":
+          description: Lỗi khi lấy người dùng theo ID
+          schema:
+            additionalProperties: true
+            type: object
+      tags:
+      - Users
+swagger: "2.0"

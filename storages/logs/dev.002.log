@@ -1,0 +1,9 @@
+{"level":"INFO","time":"2025-04-25T22:47:38.787+0700","caller":"initialize/run.go:13","msg":"Logger init success","oke":"success"}
+{"level":"INFO","time":"2025-04-25T22:47:38.817+0700","caller":"initialize/mysql.go:28","msg":"Initializing MySQL Success"}
+{"level":"INFO","time":"2025-04-25T22:47:38.964+0700","caller":"initialize/init_redis.go:27","msg":"Dùng Redis Log"}
+{"level":"INFO","time":"2025-04-25T22:53:34.784+0700","caller":"initialize/run.go:13","msg":"Logger init success","oke":"success"}
+{"level":"INFO","time":"2025-04-25T22:53:34.787+0700","caller":"initialize/mysql.go:28","msg":"Initializing MySQL Success"}
+{"level":"INFO","time":"2025-04-25T22:53:34.885+0700","caller":"initialize/init_redis.go:27","msg":"Dùng Redis Log"}
+{"level":"INFO","time":"2025-04-27T14:36:51.325+0700","caller":"initialize/run.go:13","msg":"Logger init success","oke":"success"}
+{"level":"INFO","time":"2025-04-27T14:36:51.439+0700","caller":"initialize/mysql.go:28","msg":"Initializing MySQL Success"}
+{"level":"INFO","time":"2025-04-27T14:36:51.775+0700","caller":"initialize/init_redis.go:27","msg":"Dùng Redis Log"}
