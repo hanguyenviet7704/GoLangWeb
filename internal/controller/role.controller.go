@@ -7,7 +7,6 @@ import (
 	"awesomeProject5/response"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"net/http"
 	"strconv"
 )
 
@@ -44,7 +43,7 @@ func (c *rolesController) GetAllRoles(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40001)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusOK, gin.H{"roles": roles})
+	response.SuccessResponse(ctx, 20001, gin.H{"roles": roles})
 }
 
 // GetRoleById @Summary Lấy Role theo ID
@@ -68,7 +67,7 @@ func (c *rolesController) GetRoleById(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40002)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusOK, gin.H{"role": role})
+	response.SuccessResponse(ctx, 20001, gin.H{"role": role})
 }
 
 // CreateRole @Summary Tạo mới Role
@@ -93,7 +92,7 @@ func (c *rolesController) CreateRole(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40004)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusCreated, gin.H{"role": role})
+	response.SuccessResponse(ctx, 20001, gin.H{"role": role})
 }
 
 // UpdateRole @Summary Cập nhật Role
@@ -126,7 +125,7 @@ func (c *rolesController) UpdateRole(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40004)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusOK, gin.H{"role": role})
+	response.SuccessResponse(ctx, 20001, gin.H{"role": role})
 }
 
 // DeleteRole @Summary Xóa Role
@@ -149,7 +148,7 @@ func (c *rolesController) DeleteRole(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40005)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusOK, gin.H{"message": "Đã xóa Role", "id": id})
+	response.SuccessResponse(ctx, 20001, gin.H{"message": "Đã xóa Role", "id": id})
 }
 
 // GetPermissionsFromRole @Summary Lấy danh sách permission theo Role
@@ -173,7 +172,7 @@ func (c *rolesController) GetPermissionsFromRole(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40006)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusOK, gin.H{"permissions": permissions})
+	response.SuccessResponse(ctx, 20001, gin.H{"permissions": permissions})
 }
 
 // AssignPermissionsToRole @Summary Gán quyền cho Role
@@ -207,5 +206,5 @@ func (c *rolesController) AssignPermissionsToRole(ctx *gin.Context) {
 		response.ErrorResponse(ctx, 40007)
 		return
 	}
-	response.SuccessResponse(ctx, http.StatusOK, gin.H{"message": "Đã gán Permissions cho ", "roleId": id})
+	response.SuccessResponse(ctx, 20001, gin.H{"message": "Đã gán Permissions cho ", "roleId": id})
 }

@@ -2,10 +2,8 @@ package initialize
 
 import (
 	"awesomeProject5/global"
-	"awesomeProject5/internal/middlewares"
 	"awesomeProject5/internal/mock"
 	"context"
-	"fmt"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -33,12 +31,7 @@ func InitRedis() {
 	if err != nil {
 		panic("Không thể kết nối Redis: " + err.Error())
 	} else {
-		fmt.Sprintf("Đã kết nối Redis ")
+		global.Logger.Info("Đã kết nối Redis")
 	}
-	allowed, count := middlewares.RateLimit(1, 10*time.Second)
-	if !allowed {
-		global.Logger.Error("Vượt quá giới hạn")
-		fmt.Printf(" Vượt quá giới hạn (count = %d)\n", count)
-		// return lỗi hoặc reject request
-	}
+
 }

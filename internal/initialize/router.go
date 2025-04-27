@@ -137,6 +137,5 @@ func InitRouter(app *AppContainer) *gin.Engine {
 			},
 		)
 	}
-
 	return server
 }

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -25,12 +26,23 @@ func CacheResponse(duration time.Duration, keyPrefix string) gin.HandlerFunc {
 		cacheKey := keyPrefix + ":" + c.Request.RequestURI
 		// Check Redis
 		cachedData, err := global.RedisClient.Get(c, cacheKey).Bytes()
+		allowed, count := RateLimit(1, 10*time.Second)
+		if !allowed {
+			// rate limit để vượt quá giới hạn
+			global.Logger.Error("Vượt quá giới hạn")
+			fmt.Printf(" Vượt quá giới hạn (count = %d)\n", count)
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
+			c.Abort()
+			return
+			// return lỗi hoặc reject request
+		}
 		if err == nil {
 			// Cache hit
 			c.Data(http.StatusOK, "application/json", cachedData)
 			c.Abort()
 			return
 		}
+
 		// Capture response
 		capturingWriter := &bodyWriter{
 			ResponseWriter: c.Writer, // giữ bản gốc để vẫn gửi ra client
@@ -38,7 +50,6 @@ func CacheResponse(duration time.Duration, keyPrefix string) gin.HandlerFunc {
 		}
 		c.Writer = capturingWriter
 		c.Next()
-		// Cache only 200 responses
 		if c.Writer.Status() == http.StatusOK {
 			_ = global.RedisClient.Set(c, cacheKey, capturingWriter.body.Bytes(), duration).Err()
 		}
@@ -53,6 +64,7 @@ func CacheResponseWithKeyFunc(duration time.Duration, keyFunc func(*gin.Context)
 			c.Abort()
 			return
 		}
+
 		capturingWriter := &bodyWriter{
 			ResponseWriter: c.Writer, // giữ bản gốc để vẫn gửi ra client
 			body:           bytes.NewBufferString(""),
@@ -73,9 +85,7 @@ func InvalidateCache(patternFunc func(c *gin.Context) string) gin.HandlerFunc {
 			body:           bytes.NewBufferString(""),
 		}
 		c.Writer = capturingWriter
-
 		c.Next()
-
 		var resp response.ResponseData
 		if err := json.Unmarshal(capturingWriter.body.Bytes(), &resp); err == nil && resp.Code == 20001 {
 			ctx := context.Background()
