@@ -1,482 +1,1339 @@
-basePath: /api
-definitions:
-  auth.LogoutAllDevicesRequest:
-    properties:
-      user_id:
-        type: integer
-    type: object
-  po.Permissions:
-    properties:
-      action:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      resource:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  po.Roles:
-    properties:
-      created_at:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      permissions:
-        items:
-          $ref: '#/definitions/po.Permissions'
-        type: array
-      updated_at:
-        type: string
-    type: object
-host: localhost:8080
+openapi: 3.0.0
 info:
+  title: GOLANGWEB API
+  version: 1.0
+  description: |
+    API tài liệu cho hệ thống xác thực và phân quyền.
+    
+    ## Các tính năng chính
+    - Xác thực người dùng (JWT)
+    - Quản lý vai trò và phân quyền
+    - Quản lý người dùng
+    
+    ## Cách sử dụng
+    1. Đăng nhập để lấy JWT token
+    2. Sử dụng token trong header cho các request tiếp theo
+    3. Token có thời hạn và có thể được refresh
   contact:
-    email: hanguyenviet772004@gmail.com
     name: Việt Hà
-  description: API tài liệu cho hệ thống xác thực
-  title: GOLANDWEB API
-  version: "1.0"
+    email: hanguyenviet772004@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: Các API liên quan đến xác thực người dùng
+    externalDocs:
+      description: Tài liệu chi tiết về JWT
+      url: https://jwt.io/introduction
+  - name: Users
+    description: Quản lý người dùng trong hệ thống
+  - name: Roles
+    description: Quản lý vai trò và phân quyền
+  - name: Permissions
+    description: Quản lý quyền trong hệ thống
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token được sử dụng để xác thực người dùng.
+        Format: `Bearer <token>`
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key cho các service bên ngoài
+
+  parameters:
+    page:
+      name: page
+      in: query
+      description: Số trang
+      required: false
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    limit:
+      name: limit
+      in: query
+      description: Số bản ghi trên mỗi trang
+      required: false
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+    sort:
+      name: sort
+      in: query
+      description: Sắp xếp theo trường
+      required: false
+      schema:
+        type: string
+        enum: [created_at, updated_at, name]
+        default: created_at
+    order:
+      name: order
+      in: query
+      description: Thứ tự sắp xếp
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "40001"
+        message:
+          type: string
+          example: "Lỗi hệ thống"
+      example:
+        code: "40001"
+        message: "Lỗi hệ thống"
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 100
+        total_pages:
+          type: integer
+          example: 10
+      example:
+        page: 1
+        limit: 10
+        total: 100
+        total_pages: 10
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Role'
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+      example:
+        id: 1
+        name: "John Doe"
+        email: "user@example.com"
+        is_active: true
+        created_at: "2024-03-14T10:00:00Z"
+        updated_at: "2024-03-14T10:00:00Z"
+        roles:
+          - id: 1
+            name: "Admin"
+            created_at: "2024-03-14T10:00:00Z"
+            updated_at: "2024-03-14T10:00:00Z"
+        permissions:
+          - id: 1
+            name: "read"
+            resource: "users"
+            action: "GET"
+            created_at: "2024-03-14T10:00:00Z"
+            updated_at: "2024-03-14T10:00:00Z"
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Admin"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Permission'
+      example:
+        id: 1
+        name: "Admin"
+        created_at: "2024-03-14T10:00:00Z"
+        updated_at: "2024-03-14T10:00:00Z"
+        permissions:
+          - id: 1
+            name: "read"
+            resource: "users"
+            action: "GET"
+            created_at: "2024-03-14T10:00:00Z"
+            updated_at: "2024-03-14T10:00:00Z"
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "read"
+        resource:
+          type: string
+          example: "users"
+        action:
+          type: string
+          example: "GET"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+      example:
+        id: 1
+        name: "read"
+        resource: "users"
+        action: "GET"
+        created_at: "2024-03-14T10:00:00Z"
+        updated_at: "2024-03-14T10:00:00Z"
+
+    Token:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        access_token_expires_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T11:00:00Z"
+        refresh_token_expires_at:
+          type: string
+          format: date-time
+          example: "2024-03-21T10:00:00Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-03-14T10:00:00Z"
+      example:
+        id: 1
+        user_id: 1
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        access_token_expires_at: "2024-03-14T11:00:00Z"
+        refresh_token_expires_at: "2024-03-21T10:00:00Z"
+        created_at: "2024-03-14T10:00:00Z"
+        updated_at: "2024-03-14T10:00:00Z"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+      example:
+        email: "user@example.com"
+        password: "password123"
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: "John Doe"
+            email:
+              type: string
+              format: email
+              example: "user@example.com"
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      example:
+        user:
+          id: 1
+          name: "John Doe"
+          email: "user@example.com"
+        accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+      example:
+        name: "John Doe"
+        email: "user@example.com"
+        password: "password123"
+
+    LogoutAllDevicesRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: integer
+          example: 1
+      example:
+        user_id: 1
+
 paths:
   /api/v1/auth/login:
     post:
-      consumes:
-      - application/json
-      description: Đăng nhập vào hệ thống với email và mật khẩu để nhận Access Token
-        và Refresh Token.
-      parameters:
-      - description: Email người dùng
-        in: body
-        name: email
-        required: true
-        schema:
-          type: string
-      - description: Mật khẩu người dùng
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Đăng nhập thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: Lỗi hệ thống
-          schema:
-            additionalProperties: true
-            type: object
-        "40004":
-          description: Lỗi tạo token
-          schema:
-            additionalProperties: true
-            type: object
-        "50001":
-          description: Không tìm thấy người dùng
-          schema:
-            additionalProperties: true
-            type: object
-        "50003":
-          description: Sai mật khẩu
-          schema:
-            additionalProperties: true
-            type: object
       tags:
-      - Auth
+        - Authentication
+      summary: Đăng nhập vào hệ thống
+      description: |
+        Đăng nhập với email và mật khẩu để nhận JWT token.
+        
+        Token này sẽ được sử dụng cho các request tiếp theo trong header:
+        ```
+        Authorization: Bearer <token>
+        ```
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "user@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MTU2MjQwMDAsImlhdCI6MTYxNTYyMDQwMCwicm9sZSI6ImFkbWluIn0"
+                user:
+                  id: 1
+                  email: "user@example.com"
+                  role_id: 1
+                  created_at: "2024-03-14T10:00:00Z"
+                  updated_at: "2024-03-14T10:00:00Z"
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40001"
+                message: "Email không hợp lệ"
+        '401':
+          description: Thông tin đăng nhập không chính xác
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Email hoặc mật khẩu không chính xác"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
   /api/v1/auth/logout:
     post:
-      consumes:
-      - application/json
-      description: Xóa access token hiện tại (thiết bị đang dùng)
-      parameters:
-      - description: Access Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Đăng xuất thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: Lỗi khi xóa token
-          schema:
-            additionalProperties: true
-            type: object
       tags:
-      - Auth
+        - Authentication
+      summary: Đăng xuất
+      description: |
+        Xóa token hiện tại.
+        
+        Sau khi đăng xuất, token sẽ không còn hiệu lực và không thể sử dụng cho các request tiếp theo.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Đăng xuất thành công"
+              example:
+                message: "Đăng xuất thành công"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
   /api/v1/auth/logout-all:
     post:
-      consumes:
-      - application/json
-      description: Xóa tất cả access token của người dùng dựa vào user_id
-      parameters:
-      - description: ID người dùng cần đăng xuất toàn bộ
-        in: body
-        name: user_id
-        required: true
-        schema:
-          $ref: '#/definitions/auth.LogoutAllDevicesRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Đăng xuất thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "20003":
-          description: User ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: Lỗi khi xóa tất cả token
-          schema:
-            additionalProperties: true
-            type: object
       tags:
-      - Auth
+        - Authentication
+      summary: Đăng xuất tất cả thiết bị
+      description: |
+        Xóa tất cả token của người dùng.
+        
+        Thao tác này sẽ đăng xuất người dùng khỏi tất cả các thiết bị đang đăng nhập.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: integer
+                  example: 1
+            example:
+              user_id: 1
+      responses:
+        '200':
+          description: Đăng xuất thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Đăng xuất tất cả thiết bị thành công"
+              example:
+                message: "Đăng xuất tất cả thiết bị thành công"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
   /api/v1/auth/refresh:
     post:
-      consumes:
-      - application/json
-      description: Sử dụng refreshToken để lấy accessToken mới.
-      parameters:
-      - description: Refresh Token
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
+      tags:
+        - Authentication
+      summary: Làm mới token
+      description: |
+        Sử dụng refresh token để lấy token mới.
+        
+        Token mới sẽ có thời hạn sử dụng mới và có thể được sử dụng cho các request tiếp theo.
+      security:
+        - BearerAuth: []
       responses:
-        "200":
-          description: Token mới
-          schema:
-            additionalProperties: true
-            type: object
-        "30002":
+        '200':
+          description: Làm mới token thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MTU2MjQwMDAsImlhdCI6MTYxNTYyMDQwMCwicm9sZSI6ImFkbWluIn0"
+              example:
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MTU2MjQwMDAsImlhdCI6MTYxNTYyMDQwMCwicm9sZSI6ImFkbWluIn0"
+        '401':
           description: Token không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40002":
-          description: Lỗi khi truy vấn Refresh Token
-          schema:
-            additionalProperties: true
-            type: object
-        "40003":
-          description: Không thể tạo Access Token
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Auth
-  /api/v1/roles:
-    get:
-      description: Trả về danh sách tất cả các Role trong hệ thống.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lấy danh sách role thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: Lỗi khi lấy danh sách roles
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
-    post:
-      consumes:
-      - application/json
-      description: Thêm một Role mới vào hệ thống.
-      parameters:
-      - description: Thông tin Role cần tạo
-        in: body
-        name: role
-        required: true
-        schema:
-          $ref: '#/definitions/po.Roles'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Tạo role thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40003":
-          description: Lỗi bind JSON
-          schema:
-            additionalProperties: true
-            type: object
-        "40004":
-          description: Lỗi khi tạo role
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
-  /api/v1/roles/{id}:
-    delete:
-      description: Xóa một Role khỏi hệ thống theo ID.
-      parameters:
-      - description: ID Role cần xóa
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Xóa role thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40005":
-          description: Lỗi khi xóa role
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
-    get:
-      description: Lấy thông tin chi tiết của Role theo ID.
-      parameters:
-      - description: ID Role
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lấy role theo ID thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40002":
-          description: Lỗi khi lấy role theo ID
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
-    put:
-      consumes:
-      - application/json
-      description: Cập nhật thông tin Role theo ID.
-      parameters:
-      - description: ID Role cần cập nhật
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Thông tin Role cập nhật
-        in: body
-        name: role
-        required: true
-        schema:
-          $ref: '#/definitions/po.Roles'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Cập nhật role thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40003":
-          description: Lỗi bind JSON
-          schema:
-            additionalProperties: true
-            type: object
-        "40004":
-          description: Lỗi khi cập nhật role
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
-  /api/v1/roles/{id}/permissions:
-    get:
-      description: Lấy tất cả quyền được gán cho một Role cụ thể.
-      parameters:
-      - description: ID Role
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lấy danh sách permissions thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40006":
-          description: Lỗi khi lấy permissions theo role
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
-    post:
-      consumes:
-      - application/json
-      description: Gán một danh sách các quyền cho Role theo ID.
-      parameters:
-      - description: ID Role
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Danh sách ID của quyền được gán
-        in: body
-        name: permissionIds
-        required: true
-        schema:
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Gán permission thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40003":
-          description: Lỗi bind JSON
-          schema:
-            additionalProperties: true
-            type: object
-        "40007":
-          description: Lỗi khi phân quyền role
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
   /api/v1/users:
     get:
-      description: Trả về danh sách tất cả người dùng trong hệ thống.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lấy danh sách người dùng thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: Lỗi khi lấy danh sách người dùng
-          schema:
-            additionalProperties: true
-            type: object
       tags:
-      - Users
+        - Users
+      summary: Lấy danh sách người dùng
+      description: |
+        Trả về danh sách tất cả người dùng trong hệ thống.
+        
+        Yêu cầu quyền admin để truy cập API này.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/order'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+              example:
+                users:
+                  - id: 1
+                    email: "user1@example.com"
+                    role_id: 1
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                  - id: 2
+                    email: "user2@example.com"
+                    role_id: 2
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                pagination:
+                  page: 1
+                  limit: 10
+                  total: 100
+                  total_pages: 10
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
   /api/v1/users/{id}:
-    delete:
-      description: Xóa một người dùng khỏi hệ thống theo ID.
-      parameters:
-      - description: ID người dùng cần xóa
+    parameters:
+      - name: id
         in: path
-        name: id
         required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Xóa người dùng thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40005":
-          description: Lỗi khi xóa người dùng
-          schema:
-            additionalProperties: true
-            type: object
-      tags:
-      - Users
+        schema:
+          type: integer
+        description: ID của người dùng
     get:
-      description: Lấy thông tin chi tiết của người dùng theo ID.
-      parameters:
-      - description: ID người dùng
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Lấy người dùng theo ID thành công
-          schema:
-            additionalProperties: true
-            type: object
-        "40001":
-          description: ID không hợp lệ
-          schema:
-            additionalProperties: true
-            type: object
-        "40002":
-          description: Lỗi khi lấy người dùng theo ID
-          schema:
-            additionalProperties: true
-            type: object
       tags:
-      - Users
-swagger: "2.0"
+        - Users
+      summary: Lấy thông tin người dùng
+      description: |
+        Lấy thông tin chi tiết của một người dùng theo ID.
+        
+        Yêu cầu quyền admin hoặc là chính người dùng đó.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              example:
+                id: 1
+                email: "user@example.com"
+                role_id: 1
+                created_at: "2024-03-14T10:00:00Z"
+                updated_at: "2024-03-14T10:00:00Z"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy người dùng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy người dùng"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+    delete:
+      tags:
+        - Users
+      summary: Xóa người dùng
+      description: |
+        Xóa một người dùng khỏi hệ thống.
+        
+        Yêu cầu quyền admin để thực hiện thao tác này.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Xóa người dùng thành công"
+              example:
+                message: "Xóa người dùng thành công"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy người dùng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy người dùng"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
+  /api/v1/roles:
+    get:
+      tags:
+        - Roles
+      summary: Lấy danh sách vai trò
+      description: |
+        Trả về danh sách tất cả vai trò trong hệ thống.
+        
+        Yêu cầu quyền admin để truy cập API này.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/order'
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+              example:
+                roles:
+                  - id: 1
+                    name: "Admin"
+                    description: "Administrator role"
+                    permissions:
+                      - id: 1
+                        name: "read"
+                        action: "GET"
+                        resource: "users"
+                        created_at: "2024-03-14T10:00:00Z"
+                        updated_at: "2024-03-14T10:00:00Z"
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                  - id: 2
+                    name: "User"
+                    description: "Normal user role"
+                    permissions:
+                      - id: 2
+                        name: "read"
+                        action: "GET"
+                        resource: "profile"
+                        created_at: "2024-03-14T10:00:00Z"
+                        updated_at: "2024-03-14T10:00:00Z"
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                pagination:
+                  page: 1
+                  limit: 10
+                  total: 100
+                  total_pages: 10
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+    post:
+      tags:
+        - Roles
+      summary: Tạo vai trò mới
+      description: |
+        Thêm một vai trò mới vào hệ thống.
+        
+        Yêu cầu quyền admin để thực hiện thao tác này.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "New Role"
+                description:
+                  type: string
+                  example: "Role description"
+            example:
+              name: "New Role"
+              description: "Role description"
+      responses:
+        '201':
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+              example:
+                id: 3
+                name: "New Role"
+                description: "Role description"
+                permissions: []
+                created_at: "2024-03-14T10:00:00Z"
+                updated_at: "2024-03-14T10:00:00Z"
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40001"
+                message: "Tên vai trò không được để trống"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
+  /api/v1/roles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của vai trò
+    get:
+      tags:
+        - Roles
+      summary: Lấy thông tin vai trò
+      description: |
+        Lấy thông tin chi tiết của một vai trò theo ID.
+        
+        Yêu cầu quyền admin để truy cập API này.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+              example:
+                id: 1
+                name: "Admin"
+                description: "Administrator role"
+                permissions:
+                  - id: 1
+                    name: "read"
+                    action: "GET"
+                    resource: "users"
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                created_at: "2024-03-14T10:00:00Z"
+                updated_at: "2024-03-14T10:00:00Z"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy vai trò
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy vai trò"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+    put:
+      tags:
+        - Roles
+      summary: Cập nhật vai trò
+      description: |
+        Cập nhật thông tin của một vai trò.
+        
+        Yêu cầu quyền admin để thực hiện thao tác này.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Updated Role"
+                description:
+                  type: string
+                  example: "Updated description"
+            example:
+              name: "Updated Role"
+              description: "Updated description"
+      responses:
+        '200':
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+              example:
+                id: 1
+                name: "Updated Role"
+                description: "Updated description"
+                permissions:
+                  - id: 1
+                    name: "read"
+                    action: "GET"
+                    resource: "users"
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                created_at: "2024-03-14T10:00:00Z"
+                updated_at: "2024-03-14T10:00:00Z"
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40001"
+                message: "Tên vai trò không được để trống"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy vai trò
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy vai trò"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+    delete:
+      tags:
+        - Roles
+      summary: Xóa vai trò
+      description: |
+        Xóa một vai trò khỏi hệ thống.
+        
+        Yêu cầu quyền admin để thực hiện thao tác này.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Xóa thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Xóa vai trò thành công"
+              example:
+                message: "Xóa vai trò thành công"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy vai trò
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy vai trò"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+
+  /api/v1/roles/{id}/permissions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: ID của vai trò
+    get:
+      tags:
+        - Roles
+      summary: Lấy quyền của vai trò
+      description: |
+        Lấy danh sách quyền được gán cho một vai trò.
+        
+        Yêu cầu quyền admin để truy cập API này.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permissions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Permission'
+              example:
+                permissions:
+                  - id: 1
+                    name: "read"
+                    action: "GET"
+                    resource: "users"
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+                  - id: 2
+                    name: "write"
+                    action: "POST"
+                    resource: "users"
+                    created_at: "2024-03-14T10:00:00Z"
+                    updated_at: "2024-03-14T10:00:00Z"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy vai trò
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy vai trò"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"
+    post:
+      tags:
+        - Roles
+      summary: Gán quyền cho vai trò
+      description: |
+        Gán một danh sách quyền cho một vai trò.
+        
+        Yêu cầu quyền admin để thực hiện thao tác này.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - permissionIds
+              properties:
+                permissionIds:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1, 2, 3]
+            example:
+              permissionIds: [1, 2, 3]
+      responses:
+        '200':
+          description: Gán quyền thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Gán quyền thành công"
+              example:
+                message: "Gán quyền thành công"
+        '400':
+          description: Dữ liệu không hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40001"
+                message: "Danh sách quyền không hợp lệ"
+        '401':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40101"
+                message: "Token không hợp lệ"
+        '403':
+          description: Không có quyền truy cập
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40301"
+                message: "Không có quyền truy cập"
+        '404':
+          description: Không tìm thấy vai trò
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "40401"
+                message: "Không tìm thấy vai trò"
+        '500':
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "50001"
+                message: "Lỗi server"

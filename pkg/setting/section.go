@@ -23,7 +23,6 @@ type LoggerSetting struct {
 	Max_size      int    `mapstructure:"max_size"`      // kích thước tối đa của một file log
 	Compress      bool   `mapstructure:"compress"`      // có nên nén file log cũ hay không nếu true sẽ tiết kiệm ổ đĩa
 }
-
 type AppSetting struct {
 	Env string `mapstructure:"env"`
 }
